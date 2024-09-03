@@ -133,7 +133,7 @@ class RBM:
         plt.tight_layout()
         plt.show()
     
-    def plot_weights_hid(self,title='weights', save_as="weights"):
+    def plot_weights_hid(self,title='Receptive Fields'):
         '''
         Receptive fields.
         '''
@@ -150,8 +150,6 @@ class RBM:
             for j in range(L_h):
                 axes[i, j].imshow(W[:,i*L_h+j].reshape(L_v, L_v), cmap='jet')
                 axes[i, j].axis('off')
-
-        #plt.savefig(save_as)
         plt.show()
         
     def activation(self, z):
@@ -364,6 +362,17 @@ class RBM:
                 self.t_pnl.append(tr_pnl)
                 self.t_ce.append(tr_ce)
                 vl_mse,vl_pnl,vl_ce,vl_ssim = self.validation(data_valid)
+                if incr !=0 :
+                    if (epoch + 1) % incr == 0:
+                        print(f"Epoch {epoch + 1}/{epochs}, Training Data Reconstructions:")
+                        self.plot_samples(batch_data) 
+                        print(f"Epoch {epoch + 1}/{epochs}, Training MSE: {self.t_mse[epoch]:.7f}")
+                        print(f"Epoch {epoch + 1}/{epochs}, Validation MSE: {self.v_mse[epoch]:.7f}")
+                        print(f"Epoch {epoch + 1}/{epochs}, Validation Data Reconstructions:")
+                        self.plot_samples(data_valid)
+                        if plot_weights:
+                            self.plot_weights_hid()
+                    
         if save_learn_funcs:
             learn_funcs = [cp.array(self.t_pnl),cp.array(self.t_ce),cp.array(self.t_mse),cp.array(self.v_pnl),cp.array(self.v_ce),
                           cp.array(self.v_mse),cp.array(self.v_ssim)]

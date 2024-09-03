@@ -66,7 +66,7 @@ class class_RBM:
         plt.tight_layout()
         plt.show()
 
-    def plot_weights_hid(self,title='weights', save_as="weights"):
+    def plot_weights_hid(self,title='Receptive Fields'):
         '''
         Plot receptive fields.
         '''
@@ -83,8 +83,6 @@ class class_RBM:
             for j in range(L_h):
                 axes[i, j].imshow(W[:,i*L_h+j].reshape(L_v, L_v), cmap='jet')
                 axes[i, j].axis('off')
-
-        #plt.savefig(save_as)
         plt.show()
 
     def activation(self, z):
@@ -305,6 +303,16 @@ class class_RBM:
 
             if track_learning:
                 vl_samp = self.c_valid(data_valid)
+                if incr !=0 :
+                    if (epoch + 1) % incr == 0:
+                        print(f"Epoch {epoch + 1}/{epochs}, Training Data Reconstructions:")
+                        self.plot_samples(batch_data) 
+                        print(f"Epoch {epoch + 1}/{epochs}, Validation Accuracy: {self.c_valid[epoch]:.7f}")
+                        print(f"Epoch {epoch + 1}/{epochs}, Validation Data Reconstructions:")
+                        self.plot_samples(data_valid)
+                        if plot_weights:
+                            self.plot_weights_hid()
+                            
         if save_learn_funcs:
             v_samp_ = cp.array(self.v_samp)
             if cp==cupy:
