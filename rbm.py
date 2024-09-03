@@ -1,5 +1,6 @@
 import numpy as np
-import cupy as cp
+import numpy as cp
+#import cupy as cp
 import matplotlib.pyplot as plt
 from skimage.metrics import structural_similarity as ssim
 import time
@@ -30,8 +31,8 @@ class RBM:
         self.v_ssim = []
         
     def ssim_m(self,x1,x2):
-        x1 = cp.asnumpy(x1)
-        x2 = cp.asnumpy(x2)
+        x1 = cp.asarray(x1)
+        x2 = cp.asarray(x2)
         m = []
         for i in range(x1.shape[0]):
             m.append(ssim(x1[i], x2[i], data_range=1))
@@ -98,9 +99,9 @@ class RBM:
         idx = cp.random.choice(cp.arange(batch_data.shape[0]), size=size,replace=False)
         X_batch = batch_data[idx, :]
         v_eq = self.reconstruct(X_batch)
-        v_eq = cp.asnumpy(v_eq)
+        v_eq = cp.asarray(v_eq)
         X_batch = X_batch.reshape(size, 28, 28)
-        X_batch = cp.asnumpy(X_batch)
+        X_batch = cp.asarray(X_batch)
         plt.figure(figsize=(size,1))
         for i,im in enumerate(X_batch):
             ax=plt.subplot(1,size,i+1)
@@ -129,7 +130,7 @@ class RBM:
         #fig.suptitle(title)
         for i in range(L_h):
             for j in range(L_h):
-                axes[i, j].imshow(cp.asnumpy(self.W)[:,i*L_h+j].reshape(L_v, L_v), cmap='jet')
+                axes[i, j].imshow(cp.asarray(self.W)[:,i*L_h+j].reshape(L_v, L_v), cmap='jet')
                 axes[i, j].axis('off')
 
         #plt.savefig(save_as)
@@ -326,7 +327,7 @@ class RBM:
             if save_checkpoints:
                 if epoch == checkpoints[c_ind]:
                     c_name = '_cpoint'+str(checkpoints[c_ind]+1)
-                    np.savez(name+c_name+'_parameters.npz', weights=cp.asnumpy(self.W), v_biases=cp.asnumpy(self.a), h_biases=cp.asnumpy(self.b))
+                    np.savez(name+c_name+'_parameters.npz', weights=cp.asarray(self.W), v_biases=cp.asarray(self.a), h_biases=cp.asarray(self.b))
                     c_ind += 1
             
             if track_learning:
@@ -335,12 +336,12 @@ class RBM:
                 self.t_ce.append(tr_ce)
                 vl_mse,vl_pnl,vl_ce,vl_ssim = self.validation(data_valid)
         if save_learn_funcs:
-            np.save(addrss+name+'_tr_pnl.npy',cp.asnumpy(cp.array(self.t_pnl)))
-            np.save(addrss+name+'_tr_ce.npy',cp.asnumpy(cp.array(self.t_ce)))
-            np.save(addrss+name+'_tr_mse.npy',cp.asnumpy(cp.array(self.t_mse)))
-            np.save(addrss+name+'_val_pnl.npy',cp.asnumpy(cp.array(self.v_pnl)))
-            np.save(addrss+name+'_val_ce.npy',cp.asnumpy(cp.array(self.v_ce)))
-            np.save(addrss+name+'_val_mse.npy',cp.asnumpy(cp.array(self.v_mse)))
-            np.save(addrss+name+'_val_ssim.npy',cp.asnumpy(cp.array(self.v_ssim)))
+            np.save(addrss+name+'_tr_pnl.npy',cp.asarray(cp.array(self.t_pnl)))
+            np.save(addrss+name+'_tr_ce.npy',cp.asarray(cp.array(self.t_ce)))
+            np.save(addrss+name+'_tr_mse.npy',cp.asarray(cp.array(self.t_mse)))
+            np.save(addrss+name+'_val_pnl.npy',cp.asarray(cp.array(self.v_pnl)))
+            np.save(addrss+name+'_val_ce.npy',cp.asarray(cp.array(self.v_ce)))
+            np.save(addrss+name+'_val_mse.npy',cp.asarray(cp.array(self.v_mse)))
+            np.save(addrss+name+'_val_ssim.npy',cp.asarray(cp.array(self.v_ssim)))
         if save_params:
-            np.savez(addrss+name+'_parameters.npz', weights=cp.asnumpy(self.W), v_biases=cp.asnumpy(self.a), h_biases=cp.asnumpy(self.b))
+            np.savez(addrss+name+'_parameters.npz', weights=cp.asarray(self.W), v_biases=cp.asarray(self.a), h_biases=cp.asarray(self.b))
