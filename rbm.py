@@ -1,20 +1,24 @@
-import numpy as np
 import numpy as cp
-#import cupy as cp
+try:
+    import cupy
+    if cupy.cuda.is_available():
+        cp = cupy
+except:
+    pass
 import matplotlib.pyplot as plt
 from skimage.metrics import structural_similarity as ssim
 import time
 
 class RBM:
     def __init__(self, N, M, eta=1e-1, batch_size=100, W_init='std'):
-        self.N = N  # number of visible units
-        self.M = M  # number of hidden units
+        self.N = N            # number of visible units
+        self.M = M            # number of hidden units
         self.W_init = W_init
         
         if self.W_init == 'std':
-            self.W = cp.random.normal(0.0, 1.0, (self.N, self.M)) # std
+            self.W = cp.random.normal(0.0, 1.0, (self.N, self.M))       # std
         else:
-            self.W = cp.random.randn(self.N, self.M) / cp.sqrt(self.N)  # lechun
+            self.W = cp.random.randn(self.N, self.M) / cp.sqrt(self.N)  # lecun
         
         self.a = cp.zeros((self.N))
         self.b = cp.zeros((self.M))
@@ -31,13 +35,20 @@ class RBM:
         self.v_ssim = []
         
     def ssim_m(self,x1,x2):
-        x1 = cp.asarray(x1)
-        x2 = cp.asarray(x2)
+        '''
+        input : (B x N)
+        output : scaler
+        '''
+        if cp == cupy:
+            x1 = cp.asnumpy(x1)
+            x2 = cp.asnumpy(x2)
+
         m = []
         for i in range(x1.shape[0]):
             m.append(ssim(x1[i], x2[i], data_range=1))
         
-        return np.mean(m)
+        m = cp.array(m)
+        return m.mean()
     
     def v_energy(self,v):
         '''
@@ -61,7 +72,7 @@ class RBM:
     
     def reconst_error(self,v_input,chains=1):
         '''
-        input : input batch (B x N)
+        input : (B x N)
         output : scaler
         '''
         v = self.reconstruct(v_input)
@@ -70,7 +81,7 @@ class RBM:
     
     def pseudo_neg_log_likelihood(self,batch_data):
         """return mean of pseudo-likelihood
-        input : input batch (B x N)
+        input : (B x N)
         output : scaler
         """
         idx_raw = cp.arange(batch_data.shape[0])
@@ -79,11 +90,13 @@ class RBM:
         v_[idx_raw,idx_col] = 1 - v_[idx_raw,idx_col]
         e = self.v_energy(batch_data)
         e_ = self.v_energy(v_)
-        PL = -self.N * cp.log(self.activation((e_-e)))
-        return cp.mean(PL)
+        L_ = -self.N * cp.log(self.activation((e_-e)))
+        return cp.mean(L_)
 
     def cross_entropy(self,batch_data):
         """return mean of cross entropy
+        input : (B x N)
+        output : scaler
         """
         epss = 1e-6
         batch_data = cp.array(batch_data)
@@ -91,17 +104,18 @@ class RBM:
         p = self.activation(h.dot(self.W.T) + self.a)
         p = cp.clip(p, epss, 1. - epss)
         batch_data = batch_data
-        J = batch_data*cp.log(p) + (1-batch_data)*cp.log(1.- p)
-        return -cp.mean(J)
+        m_H = batch_data*cp.log(p) + (1-batch_data)*cp.log(1.- p)
+        return -cp.mean(m_H)
 
     def plot_samples(self, batch_data):
         size = batch_data.shape[0] if batch_data.shape[0] < 10 else 10
         idx = cp.random.choice(cp.arange(batch_data.shape[0]), size=size,replace=False)
         X_batch = batch_data[idx, :]
         v_eq = self.reconstruct(X_batch)
-        v_eq = cp.asarray(v_eq)
         X_batch = X_batch.reshape(size, 28, 28)
-        X_batch = cp.asarray(X_batch)
+        if cp == cupy:
+            X_batch = cp.asnumpy(X_batch)
+            v_eq = cp.asnumpy(v_eq)
         plt.figure(figsize=(size,1))
         for i,im in enumerate(X_batch):
             ax=plt.subplot(1,size,i+1)
@@ -128,9 +142,13 @@ class RBM:
         plt.clf()
         fig, axes = plt.subplots(L_h, L_h, gridspec_kw = {'wspace':0.1, 'hspace':0.1}, figsize=(8, 8))
         #fig.suptitle(title)
+        if cp==cupy:
+            W = cp.asnumpy(self.W)
+        else:
+            W = self.W
         for i in range(L_h):
             for j in range(L_h):
-                axes[i, j].imshow(cp.asarray(self.W)[:,i*L_h+j].reshape(L_v, L_v), cmap='jet')
+                axes[i, j].imshow(W[:,i*L_h+j].reshape(L_v, L_v), cmap='jet')
                 axes[i, j].axis('off')
 
         #plt.savefig(save_as)
@@ -141,8 +159,8 @@ class RBM:
 
     def sample_h_given_v(self, v):
         '''
-        input : input batch (B x N)
-        output : hidden batch (B x M)
+        input : (B x N)
+        output : (B x M)
         '''
         prob = self.activation(v.dot(self.W) + self.b)
         h = cp.random.rand(v.shape[0], self.M) < prob
@@ -150,8 +168,8 @@ class RBM:
 
     def sample_v_given_h(self, h):
         '''
-        input : hidden batch (B x M)
-        output : input batch (B x N)
+        input : (B x M)
+        output : (B x N)
         '''
         prob = self.activation(h.dot(self.W.T) + self.a)
         v = cp.random.rand(h.shape[0], self.N) < prob
@@ -159,8 +177,8 @@ class RBM:
 
     def Gibbs_sampling(self, v_init, k, training):
         '''
-        input : input batch (B x N)
-        output : hidden batch (B x N), (B x M)
+        input : (B x N)
+        output : ((B x N), (B x M))
         '''
         if training == 'CD':
             v = v_init
@@ -203,6 +221,7 @@ class RBM:
         return DW, DW_n, DW_p, Da, Db
 
     def KH_update(self,batch_data,epoch,epochs,R=1., l=2, delta=0.02, p=2.0,eps0=2e-2,eps_d=True):
+        "This part of the code is adopted from https://github.com/DimaKrotov/Biological_Learning"
         prec = 1e-50
         if eps_d:
             eps = eps0*(1-epoch/epochs)**(1.5)
@@ -224,6 +243,7 @@ class RBM:
         self.W += eps*cp.transpose(cp.true_divide(ds,nc))
 
     def KH_hidden_update(self,batch_data,epoch,epochs,R=1., l=2, delta=0.02, p=2.0,eps0=2e-2,eps_d=True):
+        "This part of the code is adopted from https://github.com/DimaKrotov/Biological_Learning"
         prec = 1e-50
         if eps_d:
             eps = eps0*(1-epoch/epochs)**(1.5)
@@ -282,7 +302,7 @@ class RBM:
         self.b = loaded_parameters['h_biases']
         self.b = cp.array(self.b)
     
-    def train(self, data_train,data_valid, epochs=10,incr=10, k=1,training='CD',KH=False,R=1./28,l=2,delta=0.4, p=2.0,eps0=2e-2,
+    def train(self, data_train,data_valid, epochs=10,incr=10, k=1,training='CD',KH=False,R=1./10,l=2,delta=0.4, p=2.0,eps0=2e-2,
               label='',addrss='results/',save_checkpoints=False,track_learning=False,save_learn_funcs=False,save_params=False,
               plot_weights=False,eps_d=True,dataset='mnist',seed=1234):
         
@@ -327,7 +347,16 @@ class RBM:
             if save_checkpoints:
                 if epoch == checkpoints[c_ind]:
                     c_name = '_cpoint'+str(checkpoints[c_ind]+1)
-                    np.savez(name+c_name+'_parameters.npz', weights=cp.asarray(self.W), v_biases=cp.asarray(self.a), h_biases=cp.asarray(self.b))
+                    if cp==cupy:
+                        weights_ = cp.asnumpy(self.W)
+                        v_biases_ = cp.asnumpy(self.a)
+                        h_biases_ = cp.asnumpy(self.b)
+                    else:
+                        weights_ = self.W
+                        v_biases_ = self.a
+                        h_biases_ = self.b
+                    
+                    cp.savez(name+c_name+'_parameters.npz', weights=weights_, v_biases=v_biases_, h_biases=h_biases_)
                     c_ind += 1
             
             if track_learning:
@@ -336,12 +365,22 @@ class RBM:
                 self.t_ce.append(tr_ce)
                 vl_mse,vl_pnl,vl_ce,vl_ssim = self.validation(data_valid)
         if save_learn_funcs:
-            np.save(addrss+name+'_tr_pnl.npy',cp.asarray(cp.array(self.t_pnl)))
-            np.save(addrss+name+'_tr_ce.npy',cp.asarray(cp.array(self.t_ce)))
-            np.save(addrss+name+'_tr_mse.npy',cp.asarray(cp.array(self.t_mse)))
-            np.save(addrss+name+'_val_pnl.npy',cp.asarray(cp.array(self.v_pnl)))
-            np.save(addrss+name+'_val_ce.npy',cp.asarray(cp.array(self.v_ce)))
-            np.save(addrss+name+'_val_mse.npy',cp.asarray(cp.array(self.v_mse)))
-            np.save(addrss+name+'_val_ssim.npy',cp.asarray(cp.array(self.v_ssim)))
+            learn_funcs = [cp.array(self.t_pnl),cp.array(self.t_ce),cp.array(self.t_mse),cp.array(self.v_pnl),cp.array(self.v_ce),
+                          cp.array(self.v_mse),cp.array(self.v_ssim)]
+            learn_funcs_st = ['_tr_pnl.npy','_tr_ce.npy','_tr_mse.npy','_val_pnl.npy','_val_ce.npy','_val_mse.npy','_val_ssim.npy']
+            for i in range(len(learn_funcs_st)):
+                if cp==cupy:
+                    func_ = cp.asnumpy(learn_funcs[i])
+                else:
+                    func_ = learn_funcs[i]
+                cp.save(addrss+name+learn_funcs_st[i],func_)
         if save_params:
-            np.savez(addrss+name+'_parameters.npz', weights=cp.asarray(self.W), v_biases=cp.asarray(self.a), h_biases=cp.asarray(self.b))
+            if cp==cupy:
+                weights_ = cp.asnumpy(self.W)
+                v_biases_ = cp.asnumpy(self.a)
+                h_biases_ = cp.asnumpy(self.b)
+            else:
+                weights_ = self.W
+                v_biases_ = self.a
+                h_biases_ = self.b
+            cp.savez(addrss+name+'_parameters.npz', weights=weights_, v_biases=v_biases_, h_biases=h_biases_)

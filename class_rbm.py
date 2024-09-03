@@ -1,5 +1,10 @@
-import numpy as np
-import cupy as cp
+import numpy as cp
+try:
+    import cupy
+    if cupy.cuda.is_available():
+        cp = cupy
+except:
+    pass
 import matplotlib.pyplot as plt
 import time
 
@@ -40,9 +45,10 @@ class class_RBM:
         X_batch = X_batch[:,:-self.n_cl]
         v_eq = self.reconstruct(X_batch)
         v_eq = v_eq[:,:-self.n_cl]
-        v_eq = cp.asnumpy(v_eq)
         X_batch = X_batch.reshape(size, 28, 28)
-        X_batch = cp.asnumpy(X_batch)
+        if cp == cupy:
+            X_batch = cp.asnumpy(X_batch)
+            v_eq = cp.asnumpy(v_eq)
         plt.figure(figsize=(size,1))
         for i,im in enumerate(X_batch):
             ax=plt.subplot(1,size,i+1)
@@ -69,9 +75,13 @@ class class_RBM:
         plt.clf()
         fig, axes = plt.subplots(L_h, L_h, gridspec_kw = {'wspace':0.1, 'hspace':0.1}, figsize=(8, 8))
         #fig.suptitle(title)
+        if cp==cupy:
+            W = cp.asnumpy(self.W)
+        else:
+            W = self.W
         for i in range(L_h):
             for j in range(L_h):
-                axes[i, j].imshow(cp.asnumpy(self.W)[:,i*L_h+j].reshape(L_v, L_v), cmap='jet')
+                axes[i, j].imshow(W[:,i*L_h+j].reshape(L_v, L_v), cmap='jet')
                 axes[i, j].axis('off')
 
         #plt.savefig(save_as)
@@ -82,8 +92,8 @@ class class_RBM:
 
     def sample_h_given_v(self, v):
         '''
-        input : input batch (B x N)
-        output : hidden batch (B x M)
+        input : (B x N)
+        output : (B x M)
         '''
         prob = self.activation(v.dot(self.W) + self.b)
         h = cp.random.rand(v.shape[0], self.M) < prob
@@ -91,8 +101,8 @@ class class_RBM:
 
     def sample_v_given_h(self, h):
         '''
-        input : hidden batch (B x M)
-        output : input batch (B x N)
+        input :  (B x M)
+        output :  (B x N)
         '''
         prob_v = self.activation(h.dot(self.W[:-self.n_cl,:].T) + self.a[:-self.n_cl])
         v = cp.random.rand(h.shape[0], self.N) < prob_v
@@ -102,6 +112,11 @@ class class_RBM:
         return v.astype(float)
 
     def sample_class_given_v(self, input_data):
+        '''
+        input : (B x N)
+        output : (B x n_cl)
+        '''
+        "This function is adopted from https://github.com/rangwani-harsh/pytorch-rbm-classification/blob/master/classification_rbm.py"
         input_data = input_data[:,:-self.n_cl]
         weights = self.W[:-self.n_cl,:]
         class_weights = self.W[self.N:,:]
@@ -125,15 +140,15 @@ class class_RBM:
             for d in range(num_classes):
                 copy_probabilities[:, c] += cp.exp(-1 * class_probabilities[:, c] + class_probabilities[:, d])
 
-        copy_probabilities = 1 / copy_probabilities
+        copy_probabilities = 1. / copy_probabilities
         class_probabilities = copy_probabilities
 
         return class_probabilities
 
     def Gibbs_sampling(self, v_init, k, training):
         '''
-        input : input batch (B x N)
-        output : hidden batch (B x N), (B x M)
+        input : (B x N)
+        output : ((B x N), (B x M))
         '''
         if training == 'CD':
             v = v_init
@@ -176,6 +191,7 @@ class class_RBM:
         return DW, DW_n, DW_p, Da, Db
 
     def KH_update(self,batch_data,epoch,epochs,R=1., l=2, delta=0.02, p=2.0,eps0=2e-2,eps_d=True):
+        "This part of the code is adopted from https://github.com/DimaKrotov/Biological_Learning"
         prec = 1e-50
         if eps_d:
             eps = eps0*(1-epoch/epochs)**(1.5)
@@ -197,6 +213,7 @@ class class_RBM:
         self.W += eps*cp.transpose(cp.true_divide(ds,nc))
 
     def KH_hidden_update(self,batch_data,epoch,epochs,R=1., l=2, delta=0.02, p=2.0,eps0=2e-2,eps_d=True):
+        "This part of the code is adopted from https://github.com/DimaKrotov/Biological_Learning"
         prec = 1e-50
         if eps_d:
             eps = eps0*(1-epoch/epochs)**(1.5)
@@ -275,13 +292,32 @@ class class_RBM:
             if save_checkpoints:
                 if epoch == checkpoints[c_ind]:
                     c_name = '_cpoint'+str(checkpoints[c_ind]+1)
-                    np.savez(name+c_name+'_parameters.npz', weights=cp.asnumpy(self.W), v_biases=cp.asnumpy(self.a), h_biases=cp.asnumpy(self.b))
+                    if cp==cupy:
+                        weights_ = cp.asnumpy(self.W)
+                        v_biases_ = cp.asnumpy(self.a)
+                        h_biases_ = cp.asnumpy(self.b)
+                    else:
+                        weights_ = self.W
+                        v_biases_ = self.a
+                        h_biases_ = self.b
+                    np.savez(name+c_name+'_parameters.npz', weights=weights_, v_biases=v_biases_, h_biases=h_biases)
                     c_ind += 1
 
             if track_learning:
                 vl_samp = self.c_valid(data_valid)
         if save_learn_funcs:
-            np.save(addrss+name+'_val_acc.npy',cp.asnumpy(cp.array(self.v_samp)))
+            v_samp_ = cp.array(self.v_samp)
+            if cp==cupy:
+                v_samp_ = cp.asnumpy(v_samp_)
+            np.save(addrss+name+'_val_acc.npy',v_samp_)
         if save_params:
-            np.savez(addrss+name+'_parameters.npz', weights=cp.asnumpy(self.W), v_biases=cp.asnumpy(self.a), h_biases=cp.asnumpy(self.b))
+            if cp==cupy:
+                weights_ = cp.asnumpy(self.W)
+                v_biases_ = cp.asnumpy(self.a)
+                h_biases_ = cp.asnumpy(self.b)
+            else:
+                weights_ = self.W
+                v_biases_ = self.a
+                h_biases_ = self.b
+            np.savez(addrss+name+'_parameters.npz', weights=weights_, v_biases=v_biases_, h_biases=h_biases)
 
