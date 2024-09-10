@@ -10,10 +10,12 @@ from skimage.metrics import structural_similarity as ssim
 import time
 
 class RBM:
-    def __init__(self, N, M, eta=1e-1, batch_size=100, W_init='std'):
-        self.N = N            # number of visible units
-        self.M = M            # number of hidden units
-        self.W_init = W_init
+    def __init__(self, model):
+        self.N = model['N']                     # number of visible units
+        self.M = model['M']                     # number of hidden units
+        self.eta = model['eta']                 # learning rate of the RBM
+        self.batch_size = model['batch_size']   # batch size
+        self.W_init = model['W_init']           #{'lecun', 'std'} --weight initialization
         
         if self.W_init == 'std':
             self.W = cp.random.normal(0.0, 1.0, (self.N, self.M))       # std
@@ -22,8 +24,6 @@ class RBM:
         
         self.a = cp.zeros((self.N))
         self.b = cp.zeros((self.M))
-        self.eta = eta
-        self.batch_size = batch_size
         self.persistent_hidden_states = cp.random.randint(0, 2, size=(self.batch_size,self.M))
 
         self.t_mse = []
@@ -306,9 +306,22 @@ class RBM:
         self.b = loaded_parameters['h_biases']
         self.b = cp.array(self.b)
     
-    def train(self, data_train,data_valid, epochs=10,incr=10, k=1,training='CD',KH=False,R=1./10,l=2,delta=0.4, p=2.0,eps0=2e-2,
-              label='',addrss='results/',save_checkpoints=False,track_learning=False,save_learn_funcs=False,save_params=False,
-              plot_weights=False,eps_d=True,dataset='mnist',seed=1234):
+    def train(self,data_train,data_valid,training_settings,incr=10,save_checkpoints=False,track_learning=False,
+              save_learn_funcs=False,save_params=False,plot_weights=False):
+        training = training_settings['training']
+        epochs = training_settings['epochs']
+        k = training_settings['k']
+        KH = training_settings['KH']
+        R = training_settings['R']
+        l = training_settings['l']
+        p = training_settings['p']
+        delta = training_settings['delta']
+        eps0 = training_settings['eps0']
+        eps_d = training_settings['eps_d']
+        dataset = training_settings['dataset']
+        seed = training_settings['seed']
+        label = training_settings['label']
+        addrss = training_settings['addrss']
         
         n_minibatches = data_train.shape[0] // self.batch_size
         

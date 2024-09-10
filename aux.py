@@ -65,9 +65,28 @@ def get_dataset(dataset='mnist'):
     print("Test Labels Shape:", test_labels.shape)
     return train_data, valid_data, test_data, train_labels, valid_labels, test_labels
 
-def load_files(d_name='_tr',training='CD',k=1,M=100,eta=0.1,KH='hKH',l=2,delta=0.4,p=2.0,eps0=2e-3,label='',addrss='out/',
-               epochs=500,batch_size=100,R=1.0,W_init='std',eps_d=True,dataset='mnist',seed=1234):
+def load_files(model,training_settings,d_name='_tr'):
     import numpy as np
+    
+    N = model['N']
+    M = model['M']
+    eta = model['eta']
+    batch_size = model['batch_size']
+    W_init = model['W_init']
+    training = training_settings['training']
+    epochs = training_settings['epochs']
+    k = training_settings['k']
+    KH = training_settings['KH']
+    R = training_settings['R']
+    l = training_settings['l']
+    p = training_settings['p']
+    delta = training_settings['delta']
+    eps0 = training_settings['eps0']
+    eps_d = training_settings['eps_d']
+    dataset = training_settings['dataset']
+    seed = training_settings['seed']
+    label = training_settings['label']
+    addrss = training_settings['addrss']
     
     eps_name = '_eps0' if not eps_d else '_epsD'  
     KH_name = '' if not KH else '_'+KH+'_l'+str(l)+'_delta'+str(delta)+'_p'+str(p)+eps_name+str(eps0)+'_'+'R'+str(R)
@@ -81,9 +100,28 @@ def load_files(d_name='_tr',training='CD',k=1,M=100,eta=0.1,KH='hKH',l=2,delta=0
     ce = np.load(addrss+name+d_name+'_ce.npy')
     return np.vstack((pnl,mse,ce))
 
-def load_acc(training='CD',k=1,M=100,eta=0.1,KH='hKH',l=2,delta=0.4,p=2.0,eps0=2e-3,label='',addrss='out/',
-               epochs=500,batch_size=100,R=1.0,W_init='std',eps_d=True,dataset='mnist',seed=1234):
+def load_acc(model,training_settings):
     import numpy as np
+    
+    N = model['N']
+    M = model['M']
+    eta = model['eta']
+    batch_size = model['batch_size']
+    W_init = model['W_init']
+    training = training_settings['training']
+    epochs = training_settings['epochs']
+    k = training_settings['k']
+    KH = training_settings['KH']
+    R = training_settings['R']
+    l = training_settings['l']
+    p = training_settings['p']
+    delta = training_settings['delta']
+    eps0 = training_settings['eps0']
+    eps_d = training_settings['eps_d']
+    dataset = training_settings['dataset']
+    seed = training_settings['seed']
+    label = training_settings['label']
+    addrss = training_settings['addrss']
     
     eps_name = '_eps0' if not eps_d else '_epsD'  
     KH_name = '' if not KH else '_'+KH+'_l'+str(l)+'_delta'+str(delta)+'_p'+str(p)+eps_name+str(eps0)+'_'+'R'+str(R)
