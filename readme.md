@@ -13,7 +13,7 @@ The paper explores the implementation of neuromodulatory signaling in RBMs throu
 
 ```bash
 pip install -r requirements.txt
-
+```
 ## Citation
 
 If you use this code in your research, please cite the following paper:
