@@ -1,0 +1,17 @@
+cupy==13.0.0  
+fastrlock==0.8.2  
+imagecodecs==2024.1.1 
+imageio==2.34.1  
+importlib_metadata==7.1.0
+lazy_loader==0.4  
+networkx==3.3
+numpy==1.26.4
+packaging==24.0
+pillow==10.3.0
+PyWavelets==1.4.1
+scikit-image==0.22.0
+scipy==1.13.0
+setuptools==69.2.0
+tifffile==2024.5.10
+wheel==0.43.0
+zipp==3.17.0
