@@ -25,7 +25,7 @@ class class_RBM:
         self.eta = eta
         self.batch_size = batch_size
         self.persistent_hidden_states = cp.random.randint(0, 2, size=(self.batch_size,self.M))
-        self.v_samp = []
+        self.acc_valid = []
 
     def reconstruct(self,v_input,chains=1):
         '''
@@ -42,13 +42,16 @@ class class_RBM:
         size = batch_data.shape[0] if batch_data.shape[0] < 10 else 10
         idx = cp.random.choice(cp.arange(batch_data.shape[0]), size=size,replace=False)
         X_batch = batch_data[idx, :]
-        X_batch = X_batch[:,:-self.n_cl]
         v_eq = self.reconstruct(X_batch)
         v_eq = v_eq[:,:-self.n_cl]
-        X_batch = X_batch.reshape(size, 28, 28)
-        if cp == cupy:
-            X_batch = cp.asnumpy(X_batch)
-            v_eq = cp.asnumpy(v_eq)
+        X_batch = X_batch[:,:-self.n_cl]
+        X_batch = X_batch.reshape(size, int(self.N**0.5), int(self.N**0.5))
+        try:
+            if cp == cupy:
+                X_batch = cp.asnumpy(X_batch)
+                v_eq = cp.asnumpy(v_eq)
+        except:
+            pass
         plt.figure(figsize=(size,1))
         for i,im in enumerate(X_batch):
             ax=plt.subplot(1,size,i+1)
@@ -57,7 +60,7 @@ class class_RBM:
         plt.tight_layout()
         plt.show()
 
-        v_eq = v_eq.reshape(size, 28, 28)
+        v_eq = v_eq.reshape(size, int(self.N**0.5), int(self.N**0.5))
         plt.figure(figsize=(size,1))
         for i,im in enumerate(v_eq):
             ax=plt.subplot(1,size,i+1)
@@ -75,10 +78,11 @@ class class_RBM:
         plt.clf()
         fig, axes = plt.subplots(L_h, L_h, gridspec_kw = {'wspace':0.1, 'hspace':0.1}, figsize=(8, 8))
         #fig.suptitle(title)
-        if cp==cupy:
-            W = cp.asnumpy(self.W)
-        else:
-            W = self.W
+        try:
+            if cp==cupy:
+                W = cp.asnumpy(self.W[:-self.n_cl,:])
+        except:
+            W = self.W[:-self.n_cl,:]
         for i in range(L_h):
             for j in range(L_h):
                 axes[i, j].imshow(W[:,i*L_h+j].reshape(L_v, L_v), cmap='jet')
@@ -105,7 +109,7 @@ class class_RBM:
         prob_v = self.activation(h.dot(self.W[:-self.n_cl,:].T) + self.a[:-self.n_cl])
         v = cp.random.rand(h.shape[0], self.N) < prob_v
         x = h.dot(self.W[self.N:,:].T) + self.a[self.N:]
-        prob_l = cp.true_divide(cp.exp(x), cp.expand_dims(cp.sum(np.exp(x), axis=1),axis=1))
+        prob_l = cp.true_divide(cp.exp(x), cp.expand_dims(cp.sum(cp.exp(x), axis=1),axis=1))
         v = cp.concatenate((v,cp.eye(self.n_cl)[cp.argmax(prob_l,axis=1)]),axis=1)
         return v.astype(float)
 
@@ -129,7 +133,7 @@ class class_RBM:
             prod = cp.zeros(input_data.shape[0])
             prod += class_bias[y]
             for j in range(num_hidden):
-                prod += cp.log(1 + np.exp(precomputed_factor[:,j] + class_weights[y, j]))
+                prod += cp.log(1 + cp.exp(precomputed_factor[:,j] + class_weights[y, j]))
             class_probabilities[:, y] = prod  
 
         copy_probabilities = cp.zeros(class_probabilities.shape)
@@ -208,7 +212,8 @@ class class_RBM:
         nc = cp.amax(cp.absolute(ds))
         if nc < prec:
             nc = prec
-        self.W += eps*cp.transpose(cp.true_divide(ds,nc))
+        delta_W = eps*cp.transpose(cp.true_divide(ds,nc))
+        self.W += delta_W
 
     def KH_hidden_update(self,batch_data,epoch,epochs,R=1., l=2, delta=0.02, p=2.0,eps0=2e-2,eps_d=True):
         "This part of the code is adopted from https://github.com/DimaKrotov/Biological_Learning"
@@ -230,7 +235,8 @@ class class_RBM:
         nc = cp.amax(cp.absolute(ds))
         if nc < prec:
             nc = prec
-        self.W += eps* cp.true_divide(ds,nc)
+        delta_W = eps* cp.true_divide(ds,nc)
+        self.W += delta_W
 
     def c_valid(self,data_valid):
         batch_valid_size = 1000
@@ -244,11 +250,11 @@ class class_RBM:
 
         val_samp = val_samp / n_samples
 
-        self.v_samp.append(val_samp)
+        self.acc_valid.append(val_samp)
         return val_samp
 
     def load_parameters(self, name):
-        loaded_parameters = np.load(name+'_parameters.npz')
+        loaded_parameters = cp.load(name+'_parameters.npz')
 
         # Assign the loaded parameters to the RBM variables
         self.W = loaded_parameters['weights']
@@ -259,7 +265,7 @@ class class_RBM:
         self.b = cp.array(self.b)
 
     def train(self,data_train,data_valid,epochs=10,incr=10,k=1,training='CD',KH=False,R=1./28,l=2,delta=0.4,p=2.0,eps0=2e-2,
-              label='',addrss='results/',save_checkpoints=False,track_learning=False,save_learn_funcs=False,save_params=False,
+              label='',addrss='out/',save_checkpoints=False,track_learning=False,save_learn_funcs=False,save_params=False,
               plot_weights=False,eps_d=True,dataset='mnist',seed=1234):
 
         n_minibatches = data_train.shape[0] // self.batch_size
@@ -290,15 +296,16 @@ class class_RBM:
             if save_checkpoints:
                 if epoch == checkpoints[c_ind]:
                     c_name = '_cpoint'+str(checkpoints[c_ind]+1)
-                    if cp==cupy:
-                        weights_ = cp.asnumpy(self.W)
-                        v_biases_ = cp.asnumpy(self.a)
-                        h_biases_ = cp.asnumpy(self.b)
-                    else:
+                    try:
+                        if cp==cupy:
+                            weights_ = cp.asnumpy(self.W)
+                            v_biases_ = cp.asnumpy(self.a)
+                            h_biases_ = cp.asnumpy(self.b)
+                    except:
                         weights_ = self.W
                         v_biases_ = self.a
                         h_biases_ = self.b
-                    np.savez(name+c_name+'_parameters.npz', weights=weights_, v_biases=v_biases_, h_biases=h_biases)
+                    cp.savez(name+c_name+'_parameters.npz', weights=weights_, v_biases=v_biases_, h_biases=h_biases)
                     c_ind += 1
 
             if track_learning:
@@ -307,25 +314,30 @@ class class_RBM:
                     if (epoch + 1) % incr == 0:
                         print(f"Epoch {epoch + 1}/{epochs}, Training Data Reconstructions:")
                         self.plot_samples(batch_data) 
-                        print(f"Epoch {epoch + 1}/{epochs}, Validation Accuracy: {self.c_valid[epoch]:.7f}")
+                        print(f"Epoch {epoch + 1}/{epochs}, Validation Accuracy: {self.acc_valid[epoch]:.7f}")
                         print(f"Epoch {epoch + 1}/{epochs}, Validation Data Reconstructions:")
                         self.plot_samples(data_valid)
                         if plot_weights:
+                            print('Receptive Fields:')
                             self.plot_weights_hid()
                             
         if save_learn_funcs:
-            v_samp_ = cp.array(self.v_samp)
-            if cp==cupy:
-                v_samp_ = cp.asnumpy(v_samp_)
-            np.save(addrss+name+'_val_acc.npy',v_samp_)
+            v_samp_ = cp.array(self.acc_valid)
+            try:
+                if cp==cupy:
+                    v_samp_ = cp.asnumpy(v_samp_)
+            except:
+                pass
+            cp.save(addrss+name+'_val_acc.npy',v_samp_)
         if save_params:
-            if cp==cupy:
-                weights_ = cp.asnumpy(self.W)
-                v_biases_ = cp.asnumpy(self.a)
-                h_biases_ = cp.asnumpy(self.b)
-            else:
+            try:
+                if cp==cupy:
+                    weights_ = cp.asnumpy(self.W)
+                    v_biases_ = cp.asnumpy(self.a)
+                    h_biases_ = cp.asnumpy(self.b)
+            except:
                 weights_ = self.W
                 v_biases_ = self.a
                 h_biases_ = self.b
-            np.savez(addrss+name+'_parameters.npz', weights=weights_, v_biases=v_biases_, h_biases=h_biases)
+            cp.savez(addrss+name+'_parameters.npz', weights=weights_, v_biases=v_biases_, h_biases=h_biases_)
 
