@@ -40,7 +40,7 @@ class class_RBM:
         return v
 
     def plot_samples(self, batch_data):
-        size = batch_data.shape[0] if batch_data.shape[0] < 10 else 10
+        size = batch_data.shape[0] if batch_data.shape[0] < self.n_cl else self.n_cl
         idx = cp.random.choice(cp.arange(batch_data.shape[0]), size=size,replace=False)
         X_batch = batch_data[idx, :]
         v_eq = self.reconstruct(X_batch)

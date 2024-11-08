@@ -56,7 +56,7 @@ class RBM:
     def v_energy(self,v):
         '''
         input : (B x N)
-        output : (B x N)
+        output : (B)
         '''
         v = cp.array(v)
         wv_b = v.dot(self.W) + self.b
@@ -111,11 +111,12 @@ class RBM:
         return -cp.mean(m_H)
 
     def plot_samples(self, batch_data):
-        size = batch_data.shape[0] if batch_data.shape[0] < 10 else 10
+        n_cl = 10
+        size = batch_data.shape[0] if batch_data.shape[0] < n_cl else n_cl
         idx = cp.random.choice(cp.arange(batch_data.shape[0]), size=size,replace=False)
         X_batch = batch_data[idx, :]
         v_eq = self.reconstruct(X_batch)
-        X_batch = X_batch.reshape(size, 28, 28)
+        X_batch = X_batch.reshape(size, int(self.N**0.5), int(self.N**0.5))
         try:
             if cp == cupy:
                 X_batch = cp.asnumpy(X_batch)
@@ -130,7 +131,7 @@ class RBM:
         plt.tight_layout()
         plt.show()
         
-        v_eq = v_eq.reshape(size, 28, 28)
+        v_eq = v_eq.reshape(size, int(self.N**0.5), int(self.N**0.5))
         plt.figure(figsize=(size,1))
         for i,im in enumerate(v_eq):
             ax=plt.subplot(1,size,i+1)
