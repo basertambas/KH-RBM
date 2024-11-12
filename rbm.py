@@ -339,9 +339,9 @@ class RBM:
             tr_mse = 0; tr_pnl = 0; tr_ce = 0; vl_mse = 0; vl_pnl = 0; vl_ce = 0; vl_ssim = 0
             for x in range(n_minibatches):
                 batch_data = data_train[x*self.batch_size:(x+1)*self.batch_size,:] 
-                if KH == 'vKH':
+                if KH == 'bottom-up':
                     self.KH_update(batch_data,epoch,epochs,R,l,delta,p,eps0,eps_d)
-                if KH == 'hKH':
+                if KH == 'top-down':
                     self.KH_hidden_update(batch_data,epoch,epochs,R,l,delta,p,eps0,eps_d)
                 else:
                     pass

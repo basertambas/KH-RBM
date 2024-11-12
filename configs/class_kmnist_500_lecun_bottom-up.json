@@ -1,0 +1,25 @@
+{
+    "model": {
+        "N": 784,
+        "M": 500,
+        "eta": 0.1,
+        "batch_size": 100,
+        "W_init": "lecun"
+    },
+    "training_settings": {
+        "dataset": "kmnist",
+        "KH": "bottom-up",
+        "training": "CD",
+        "k": 1,
+        "epochs": 500,
+        "eps0": 0.04,
+        "eps_d": true,
+        "delta": 0.1,
+        "p": 2.0,
+        "l": 2,
+        "R": 0.1,
+        "seed": 1234,
+        "addrss": "",
+        "label": "p1.5decay"
+    }
+}
