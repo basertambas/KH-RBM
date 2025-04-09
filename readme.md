@@ -1,7 +1,7 @@
-# Neuromodulatory Signaling in RBMs via Krotov-Hopfield Algorithm
+# Neuromodulation via Krotov-Hopfield Improves Accuracy and Robustness of RBMs
 
 ## Introduction
-This repository contains the code accompanying the paper "[Neuromodulatory Signaling in RBMs via Krotov-Hopfield Algorithm](link)". 
+This repository contains the code accompanying the paper "[Neuromodulation via Krotov-Hopfield Improves Accuracy and Robustness of RBMs](link)". 
 The paper explores the implementation of neuromodulatory signaling in RBMs through Krotov-Hopfield algorithm.
 
 ## Dependencies
