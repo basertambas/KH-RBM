@@ -1,7 +1,7 @@
 # Neuromodulation via Krotov-Hopfield Improves Accuracy and Robustness of RBMs
 
 ## Introduction
-This repository contains the code accompanying the paper "[Neuromodulation via Krotov-Hopfield Improves Accuracy and Robustness of RBMs](link)". 
+This repository contains the code accompanying the paper "[Neuromodulation via Krotov-Hopfield Improves Accuracy and Robustness of RBMs](http://arxiv.org/abs/2505.06902)". 
 The paper explores the implementation of neuromodulatory signaling in RBMs through Krotov-Hopfield algorithm.
 
 ## Dependencies
@@ -19,15 +19,17 @@ pip install -r requirements.txt
 If you use this code in your research, please cite the following paper:
 
 ```bibtex
-@article{x,
-  title={x},
-  author={x},
-  journal={x},
-  year={x},
-  volume={x},
-  number={x},
-  pages={x},
-  doi={x}
+@misc{neuromodulation_2025,
+	title = {Neuromodulation via {Krotov}-{Hopfield} {Improves} {Accuracy} and {Robustness} of {RBMs}},
+	url = {http://arxiv.org/abs/2505.06902},
+	doi = {10.48550/arXiv.2505.06902},
+	urldate = {2025-05-14},
+	publisher = {arXiv},
+	author = {Tambaş, Başer and Subaşı, A. Levent and Kabakçıoğlu, Alkan},
+	month = may,
+	year = {2025},
+	note = {arXiv:2505.06902},
+	keywords = {Condensed Matter - Disordered Systems and Neural Networks}
 }
 
 
