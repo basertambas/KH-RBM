@@ -11,7 +11,7 @@ pillow==10.3.0
 PyWavelets==1.4.1
 scikit-image==0.22.0
 scipy==1.13.0
-setuptools==69.2.0
+setuptools~>70.0.0
 tifffile==2024.5.10
 wheel==0.43.0
-zipp==3.17.0
+zipp~>3.19.0
