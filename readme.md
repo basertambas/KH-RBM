@@ -19,7 +19,7 @@ pip install -r requirements.txt
 If you use this code in your research, please cite the following paper:
 
 ```bibtex
-@article{tambas_neuromodulation_2026,
+@article{neuromodulation_2026,
 	title = {Neuromodulation via {Krotov}-{Hopfield} improves accuracy and robustness of restricted {Boltzmann} machines},
 	volume = {8},
 	issn = {2643-1564},
