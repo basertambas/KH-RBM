@@ -19,17 +19,18 @@ pip install -r requirements.txt
 If you use this code in your research, please cite the following paper:
 
 ```bibtex
-@misc{neuromodulation_2025,
-	title = {Neuromodulation via {Krotov}-{Hopfield} {Improves} {Accuracy} and {Robustness} of {RBMs}},
-	url = {http://arxiv.org/abs/2505.06902},
-	doi = {10.48550/arXiv.2505.06902},
-	urldate = {2025-05-14},
-	publisher = {arXiv},
+@article{tambas_neuromodulation_2026,
+	title = {Neuromodulation via {Krotov}-{Hopfield} improves accuracy and robustness of restricted {Boltzmann} machines},
+	volume = {8},
+	issn = {2643-1564},
+	url = {https://link.aps.org/doi/10.1103/y82t-c34b},
+	doi = {10.1103/y82t-c34b},
+	number = {1},
+	journal = {Physical Review Research},
 	author = {Tambaş, Başer and Subaşı, A. Levent and Kabakçıoğlu, Alkan},
-	month = may,
-	year = {2025},
-	note = {arXiv:2505.06902},
-	keywords = {Condensed Matter - Disordered Systems and Neural Networks}
+	month = jan,
+	year = {2026},
+	pages = {L012004}
 }
 
 
